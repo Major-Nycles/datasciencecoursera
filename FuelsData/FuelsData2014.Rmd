@@ -1,0 +1,194 @@
+---
+title: "FuelsData2014"
+author: "James Cronly"
+date: "31/03/2021"
+output: html_document
+---
+
+```{r}
+library(xlsx)
+library(ggplot2)
+fuelData <- read.xlsx("./Fuels_tool_2017.xlsx", sheetIndex = 3)
+df2 <- data.frame(t(fuelData))
+names(df2) <- df2[1,]
+df3 <- df2[-1,]
+df3$`Aromatics IP 156` <- as.numeric(df3$`Aromatics IP 156`)
+df3$`Smoke point` <- as.numeric(df3$`Smoke point`)
+df3$pass <- df3$`Smoke point`>=25
+```
+
+```{r}
+
+
+df3$IBP <- as.numeric(df3$IBP)
+
+plot(df3$IBP, df3$`Smoke point`)
+
+cols <- colnames(df3)
+cols[7:9] <- c("D_0.1","D_0.5","D_0.9")
+
+colnames(df3) <- cols
+
+df3$D_0.1 <- as.numeric(df3$D_0.1)
+df3$D_0.5 <- as.numeric(df3$D_0.5)
+df3$D_0.9 <- as.numeric(df3$D_0.9)
+df3$FBP <- as.numeric(df3$FBP)
+
+plot(df3$FBP, df3$`Smoke point`)
+
+df3$Viscosity <- as.numeric(df3$Viscosity)
+
+plot(df3$Viscosity, df3$`Smoke point`)
+```
+
+
+```{r}
+hist(as.numeric(df3$`Aromatics IP 156`), probability = TRUE)
+```
+
+```{r}
+hist(as.numeric(df3$IBP))
+```
+
+```{r}
+hist(as.numeric(df3$`Smoke point`), 
+     breaks = 20, 
+     probability = TRUE,
+     main = "Smoke Point 2014 Fuel Data",
+     xlab = "SP [mm]")
+abline(v = 24.5,
+       col = "red",
+       lwd = 4,
+       lty = 2)
+```
+```{r}
+plot(df3$`Aromatics IP 156`,df3$`Smoke point`)
+```
+```{r, fig.height=6, fig.width=9}
+library(ggplot2)
+g1 <- ggplot(df3, mapping = aes(x = `Aromatics IP 156`,y = `Smoke point`))
+g1 <- g1 + geom_point(aes(colour = pass),
+                      alpha = 0.25)
+g1 <- g1 + geom_density_2d(alpha = 0.5)
+g1 <- g1 + labs(title = "Aromatic Volume vs Smoke Point - 2014 Jet A-1")
+g1
+
+model1 <- lm(df3$`Smoke point`~df3$`Aromatics IP 156`, df3)
+aro_vs_sp <- cor(x= df3$`Aromatics IP 156`, y = df3$`Smoke point`)
+```
+
+
+```{r}
+plot(df3$FBP,df3$`Smoke point`)
+model <- lm(FBP~`Aromatics IP 156`, df3)
+```
+
+```{r}
+library(dplyr)
+pass <- filter(df3, `Smoke point` >= 25)
+fail <- filter(df3, df3$`Smoke point` < 25)
+
+plot(pass$`Aromatics IP 156`, pass$`Smoke point`)
+```
+
+```{r}
+hist(as.numeric(df3$`Density kg/m3`), probability = TRUE, breaks = 20)
+
+```
+```{r}
+library(ggpubr)
+g2 <- ggplot(df3, aes(x= `Aromatics IP 156`, y=`Smoke point`))
+g2 <- g2 + geom_point(alpha = 0.25, aes(colour = pass))
+g2 <- g2 + facet_wrap(df3$pass)
+g2 <- g2 + geom_smooth(method = lm)
+g2 <- g2 + labs(title = "Aromatic Volume vs SP - 2014 Jet A-1")
+g2 <- g2 + stat_regline_equation(label.y = 30, aes(label = ..rr.label..))
+g2 
+```
+```{r}
+g3 <- ggplot(df3)
+g3 <- g3 + geom_boxplot(aes(x = pass, 
+                            y = `Aromatics IP 156`,
+                            colour = pass))
+g3
+```
+```{r, fig.height=8, fig.width=12}
+library(gridExtra)
+export <- grid.arrange(g2,g3,ncol = 1)
+```
+```{r}
+df3$`Density kg/m3` <- as.numeric(df3$`Density kg/m3`)
+g4 <- ggplot(df3, aes(x= `Density kg/m3`, y=`Smoke point`))
+g4 <- g4 + geom_point(alpha = 0.25, aes(colour = pass))
+g4 <- g4 + facet_wrap(df3$pass)
+g4 <- g4 + geom_smooth(method = lm)
+g4 <- g4 + labs(title = "Density vs SP - 2014 Jet A-1")
+g4 <- g4 + stat_regline_equation(label.y = 30, aes(label = ..rr.label..))
+g4 
+```
+```{r}
+g5 <- ggplot(df3, aes(`Density kg/m3`))
+g5 <- g5 + geom_histogram(aes(colour = pass))
+g5 <- g5 + facet_wrap(.~pass)
+g5
+```
+```{r, fig.height=8, fig.width=12}
+density <- grid.arrange(g4, g5, ncol = 1)
+density
+```
+```{r}
+df3$IBP <- as.numeric(df3$IBP)
+df3$FBP <- as.numeric(df3$FBP)
+
+
+```
+
+```{r}
+# Napthalenes
+
+fail$Naphthalenes <- as.numeric(fail$Naphthalenes)
+g6 <- ggplot(fail, aes(x= Naphthalenes, y=`Smoke point`)) +
+        geom_point(alpha = 0.25, aes(colour = pass)) +
+        geom_smooth(method = lm) +
+        labs(title = "Napthalenes vs SP - 2014 Jet A-1") +
+        stat_regline_equation(label.y = 30, aes(label = ..rr.label..))
+
+g6
+
+fail$Ratio <- fail$Naphthalenes/fail$`Aromatics IP 156`
+
+g7 <- ggplot(fail, aes(x= Ratio, y=`Smoke point`)) +
+        geom_point(alpha = 0.25, aes(colour = pass)) +
+        geom_smooth(method = lm) +
+        labs(title = "Napthalenes/Aromatics vs SP - 2014 Jet A-1") +
+        stat_regline_equation(label.y = 30, aes(label = ..rr.label..))
+
+g7
+```
+
+
+```{r}
+# Look at specific energy
+
+df3$`Specific Energy` <- as.numeric(df3$`Specific Energy`)
+
+df3$Energy_Density <- df3$`Specific Energy` * df3$`Density kg/m3`
+
+plot(df3$`Specific Energy`,df3$`Aromatics IP 156`)
+```
+
+```{r}
+# Model pass/fail
+library(caret)
+
+df3_model <- df3
+
+df3_model$pass <- as.factor(df3_model$pass)
+
+pass_model <- train(form = pass ~ IBP + D_0.1 + D_0.5 + D_0.9 + FBP,
+                    data = df3_model,
+                    trControl = trainControl(method = "cv", number = 5),
+                    method = "glm",
+                    family = "binomial")
+```
+
